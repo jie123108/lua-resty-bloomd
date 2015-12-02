@@ -1,7 +1,9 @@
 Name
 ====
 
-lua-resty-bloomd -  Is a client library based on ngx_lua to interface with bloomd servers(https://github.com/armon/bloomd)
+lua-resty-bloomd -  Is a client library based on ngx_lua to interface with bloomd servers(https://github.com/armon/bloomd)<br/>
+
+Bloomd is a high-performance C server which is used to expose bloom filters and operations over them to networked clients.
 
 Table of Contents
 =================
