@@ -11,6 +11,8 @@ Table of Contents
 * [Synopsis](#synopsis)
 * [Methods](#methods)
     * [new](#new)
+    * [create](#create)
+    * [list](#list)
     * [drop](#drop)
     * [close](#close)
     * [clear](#clear)
