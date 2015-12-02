@@ -11,6 +11,15 @@ Table of Contents
 * [Synopsis](#synopsis)
 * [Methods](#methods)
     * [new](#new)
+    * [drop](#drop)
+    * [close](#close)
+    * [clear](#clear)
+    * [check](#check)
+    * [checks](#checks)
+    * [set](#set)
+    * [sets](#sets)
+    * [info](#info)
+    * [flush](#flush)
 * [Installation](#installation)
 * [Authors](#authors)
 * [Copyright and License](#copyright-and-license)
@@ -31,90 +40,98 @@ Synopsis
             local bloomd = require("resty.bloomd")
             
             local function debug(name, ok, err)
+            	if type(err) == 'table' then
+            		local t = {}
+            		for k, v in pairs(err) do 
+            			table.insert(t, k .. ":" .. tostring(v))
+            		end
+            		err = table.concat(t, ",")
+            	end
             	ngx.say(string.format("%15s -- ok: %5s, err: %s", name, tostring(ok), tostring(err)))
             end
             -- create a new instance and connect to the bloomd(127.0.0.1:8673)
-            local bloom = bloomd:new("127.0.0.1", 8673, 2000)
+            local filter_obj = bloomd:new("127.0.0.1", 8673, 2000)
             local function test_main()
+            	local filter_name = "my_filter"
             	local capacity = 100001
             	local probability = 0.001
-            	-- create a filter named 'my_filter'
-            	local ok, err = bloom:create("my_filter", capacity, probability)
+            	-- create a filter named filter_name
+            	local ok, err = filter_obj:create(filter_name, capacity, probability)
             	debug("create-new", ok, err)
             	assert(ok == true)
             	-- assert(err == "Done", "err ~= 'Done'")
             
             	-- create a filter, the name is exist
-            	local ok, err = bloom:create("my_filter", capacity, probability)
+            	local ok, err = filter_obj:create(filter_name, capacity, probability)
             	debug("create-exist", ok, err)
             	assert(ok == true)
             	assert(err == "Exists")
             
             	-- set a key, New
-            	local ok, err = bloom:set("my_filter", 'my_key')
+            	local ok, err = filter_obj:set(filter_name, 'my_key')
             	debug("set-new", ok, err)
             	assert(ok==true)
             	assert(err == "Yes")
             
             	-- set a key, Exist
-            	local ok, err = bloom:set("my_filter", 'my_key')
+            	local ok, err = filter_obj:set(filter_name, 'my_key')
             	debug("set-exist", ok, err)
             	assert(ok==true)
             	assert(err == "No")
             
             	-- check a key, Exist
-            	local ok, err = bloom:check("my_filter", 'my_key')
+            	local ok, err = filter_obj:check(filter_name, 'my_key')
             	debug("check-exist", ok, err)
             	assert(ok==true)
             	assert(err == "Yes")
             
             	-- check a key, Not Exist
-            	local ok, err = bloom:check("my_filter", 'this_key_not_exist')
+            	local ok, err = filter_obj:check(filter_name, 'this_key_not_exist')
             	debug("check-not-exist", ok, err)
             	assert(ok==true)
             	assert(err == "No")
             
             	-- flush a filter
-            	local ok, err = bloom:flush("my_filter")
+            	local ok, err = filter_obj:flush(filter_name)
             	debug("flush", ok, err)
             	assert(ok==true)
             	assert(err == "Done")
             
             	-- close a bloom filter
-            	local ok, err = bloom:close("my_filter")
+            	local ok, err = filter_obj:close(filter_name)
             	debug("close", ok, err)
             	assert(ok==true)
             	assert(err == "Done")
             
             	-- check a key, Exist
-            	local ok, err = bloom:check("my_filter", 'my_key')
+            	local ok, err = filter_obj:check(filter_name, 'my_key')
             	debug("check-exist", ok, err)
             	assert(ok==true)
             	assert(err == "Yes")
             
             
-            	bloom:create("my_filter3", capacity, 0.001)
+            	filter_obj:create("my_filter3", capacity, 0.001)
             	-- list all filter
-            	local ok, filters = bloom:list("my_filter")
+            	local ok, filters = filter_obj:list(filter_name)
             	debug("list", ok, filters)
             	assert(ok==true)
             	assert(type(filters)=='table' and #filters==2)
             	for _,filter in ipairs(filters) do 
-            		if filter.name == "my_filter" then 
+            		if filter.name == filter_name then 
             			assert(filter.size == 1)
-            		end            		
+            		end		
             	end
-            	bloom:drop('my_filter3')
+            	filter_obj:drop('my_filter3')
             
             	-- Set many items in a filter at once(bulk command)
-            	local ok, status = bloom:sets("my_filter", {"a", "b", "c"})
+            	local ok, status = filter_obj:sets(filter_name, {"a", "b", "c"})
             	assert(ok)
             	assert(type(status)=='table')
             	err = table.concat(status, ' ')
             	debug("sets", ok, err)
             	assert(err == "Yes Yes Yes")
             
-            	local ok, status = bloom:sets("my_filter", {"a", "b", "d"})
+            	local ok, status = filter_obj:sets(filter_name, {"a", "b", "d"})
             	assert(ok)
             	assert(type(status)=='table')
             	err = table.concat(status, ' ')
@@ -122,7 +139,7 @@ Synopsis
             	assert(err == "No No Yes")
             
             	-- Checks if a list of keys are in a filter
-            	local ok, status = bloom:checks("my_filter", {"a", "x", "c", "d", "e"})
+            	local ok, status = filter_obj:checks(filter_name, {"a", "x", "c", "d", "e"})
             	assert(ok)
             	assert(type(status)=='table')
             	err = table.concat(status, ' ')
@@ -131,7 +148,7 @@ Synopsis
             
             
             	-- Gets info about a filter
-            	local ok, info = bloom:info("my_filter")
+            	local ok, info = filter_obj:info(filter_name)
             	debug("info", ok, info)
             	assert(ok)
             	assert(type(info)=='table')
@@ -140,29 +157,29 @@ Synopsis
             	assert(info.size == 5)
             
             	-- drop a filter
-            	local ok, err = bloom:drop('my_filter')
+            	local ok, err = filter_obj:drop(filter_name)
             	debug("drop", ok, err)
             	assert(ok==true)
             	assert(err == "Done")
             
             
             	-- Test filter not exist
-            	local ok, err = bloom:drop('my_filter')
+            	local ok, err = filter_obj:drop(filter_name)
             	debug("drop-not-exist", ok, err)
             	assert(ok==false)
             	assert(err == "Filter does not exist")
             
             
             	-- create, close and clear a bloom filter, my_filter2 is still in disk.
-            	local ok, err = bloom:create("my_filter2", 10000*20, 0.001)
+            	local ok, err = filter_obj:create("my_filter2", 10000*20, 0.001)
             	debug("create-new", ok, err)
             	assert(ok == true)
             	assert(err == "Done", "err ~= 'Done'")
-            	local ok, err = bloom:close("my_filter2")
+            	local ok, err = filter_obj:close("my_filter2")
             	debug("close", ok, err)
             	assert(ok==true)
             	assert(err == "Done")
-            	local ok, err = bloom:clear("my_filter2")
+            	local ok, err = filter_obj:clear("my_filter2")
             	debug("clear", ok, err)
             	assert(ok==true)
             	assert(err == "Done")
@@ -171,12 +188,11 @@ Synopsis
             end
             local ok, err = pcall(test_main)
             if not ok then
-            	bloom:close("my_filter")
-            	bloom:close("my_filter2")
-            	bloom:close("my_filter3")
+            	filter_obj:close("my_filter")
+            	filter_obj:close("my_filter2")
+            	filter_obj:close("my_filter3")
             	assert(ok, err)
             end
-
             ';
         }
     }
@@ -186,7 +202,104 @@ Methods
 =======
 
 [Back to TOC](#table-of-contents)
+new
+---
+`syntax: filter_obj = bloomd:new(host, port, timeout)`
 
+Create a new bloom filter object.
+* IN: the `host` is the bloomd's host, default is '127.0.0.1'.
+* IN: the `port` is the bloomd's port, default is 8673.
+* IN: the `timeout` is the timeout time in ms, default is 5000ms.
+
+create
+---
+`syntax: ok, err = filter_obj:create(filter_name, capacity, prob, in_memory)`
+
+Create a new filter
+* IN: the `filter_name` is the name of the filter, and can contain the characters a-z, A-Z, 0-9, ., _.
+* IN: the `capacity` is provided the filter will be created to store at least that many items in the initial filter. default is 0.001.
+* IN: the `prob` is maximum false positive probability is provided. 
+* IN: the 'in_memory' is to force the filter to not be persisted to disk.
+
+list
+---
+`syntax: ok, filters = filter_obj:list(filter_prefix)`
+
+List all filters or those matching a prefix.<br/>
+* OUT: the `ok` is list status.
+* OUT: the `filters` is a Lua table holding all the matched filter.
+
+```lua
+for _,filter in ipairs(filters) do 
+	ngx.say(filter.name, ",", filter.probability, ",", 
+	        filter.storage, ",", filter.capacity, ",",filter.size)
+end
+```
+
+drop
+---
+`syntax: ok, err = filter_obj:drop(filter_name)`
+
+Drop a filters (Deletes from disk). On Success Returns ok:true, err:'Done'
+
+close
+---
+`syntax: ok, err = filter_obj:close(filter_name)`
+
+Closes a filter (Unmaps from memory, but still accessible). On Success Returns ok:true, err:'Done'
+
+
+clear
+---
+`syntax: ok, err = filter_obj:clear(filter_name)`
+
+Clears a filter from the lists (Removes memory, left on disk)
+
+
+check
+---
+`syntax: ok, status = filter_obj:check(filter_name, key)`
+
+Check if a key is in a filter. 
+* IN: the `status` is 'Yes'(`key` is exists in filter) or 'No'(if `key` is not exists in filter).
+
+checks
+---
+`syntax: ok, status = filter_obj:checks(filter_name, keys)`
+
+Checks if a list of keys are in a filter
+* IN: the `keys` is a table contains some keys.
+* OUT: the `status` is a table contains each key's status('Yes' or 'No').
+
+set
+---
+`syntax: ok, status = filter_obj:set(filter_name, key)`
+
+Set an item in a filter
+* OUT: the `status` is 'Yes'(`key` is success set to the filter) or 'No'(`key` is exists in the filter).
+
+
+sets
+---
+`syntax: ok, status = filter_obj:sets(filter_name, keys)`
+
+Set many items in a filter at once
+* IN: the `keys` is a table contains some keys.
+* OUT: the `status` is a table contains each key's set status('Yes' or 'No').
+
+info
+---
+`syntax: ok, info = filter_obj:info(filter_name)`
+
+Gets info about a filter
+* OUT: the `info` is a table like `{in_memory:1,set_misses:3,checks:8,capacity:100001, probability:0.001,page_outs:1,size:5,check_hits:5,
+storage:240141,page_ins:1,set_hits:5,check_misses:3,sets:8}`.
+
+flush
+---
+`syntax: ok, err = filter_obj:flush(filter_name)`
+
+Flush a specified filter. 
 
 [Back to TOC](#table-of-contents)
 
@@ -207,7 +320,7 @@ add the path of your `lua-resty-bloomd` source tree to ngx_lua's Lua module sear
 
 and then load the library in Lua:
 
-    local bloomd = require "resty.bloomd"
+    bloomd = require "resty.bloomd"
 
 [Back to TOC](#table-of-contents)
 

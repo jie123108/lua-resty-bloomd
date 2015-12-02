@@ -29,13 +29,16 @@ local mt = { __index = _M }
 function _M:new(host, port, timeout)
     host = host or "127.0.0.1"
     port = port or 8673
+    timeout = timeout or 1000*5
     return setmetatable({host=host, port=port, timeout=timeout}, mt)
 end
 
 function _M:_connect()
     assert(self.sock == nil, "self.sock is not nil")
     local sock = ngx.socket.tcp()
-    sock:settimeout(self.timeout)
+    if self.timeout then
+        sock:settimeout(self.timeout)
+    end
     local ok, err = sock:connect(self.host, self.port)
     if not ok then
         sock:close()
