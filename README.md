@@ -222,8 +222,8 @@ create
 Create a new filter
 * IN: the `filter_name` is the name of the filter, and can contain the characters a-z, A-Z, 0-9, ., _.
 * IN: the `capacity` is provided the filter will be created to store at least that many items in the initial filter. default is 0.001.
-* IN: the `prob` is maximum false positive probability is provided. 
-* IN: the 'in_memory' is to force the filter to not be persisted to disk.
+* IN: the `prob` is maximum false positive probability provided. 
+* IN: the 'in_memory' is to force the filter not to be persisted to disk.
 
 list
 ---
@@ -244,20 +244,20 @@ drop
 ---
 `syntax: ok, err = filter_obj:drop(filter_name)`
 
-Drop a filters (Deletes from disk). On Success Returns ok:true, err:'Done'
+Drop a filter (Deletes from disk). On Success Returns ok:true, err:'Done'
 
 close
 ---
 `syntax: ok, err = filter_obj:close(filter_name)`
 
-Closes a filter (Unmaps from memory, but still accessible). On Success Returns ok:true, err:'Done'
+Close a filter (Unmaps from memory, but still accessible). On Success Returns ok:true, err:'Done'
 
 
 clear
 ---
 `syntax: ok, err = filter_obj:clear(filter_name)`
 
-Clears a filter from the lists (Removes memory, left on disk)
+Clear a filter from the lists (Removes memory, left on disk)
 
 
 check
@@ -265,22 +265,22 @@ check
 `syntax: ok, status = filter_obj:check(filter_name, key)`
 
 Check if a key is in a filter. 
-* IN: the `status` is 'Yes'(`key` is exists in filter) or 'No'(if `key` is not exists in filter).
+* IN: the `status` is 'Yes'(`key` exists in filter) or 'No'(if `key` does not exists in filter).
 
 checks
 ---
 `syntax: ok, status = filter_obj:checks(filter_name, keys)`
 
-Checks if a list of keys are in a filter
-* IN: the `keys` is a table contains some keys.
-* OUT: the `status` is a table contains each key's status('Yes' or 'No').
+Check if a list of keys are in a filter
+* IN: the `keys` is a table that contains some keys.
+* OUT: the `status` is a table that contains each key's status('Yes' or 'No').
 
 set
 ---
 `syntax: ok, status = filter_obj:set(filter_name, key)`
 
 Set an item in a filter
-* OUT: the `status` is 'Yes'(`key` is success set to the filter) or 'No'(`key` is exists in the filter).
+* OUT: the `status` is 'Yes'(`key` is successfully set to the filter) or 'No'(`key`  exists in the filter).
 
 
 sets
@@ -288,14 +288,14 @@ sets
 `syntax: ok, status = filter_obj:sets(filter_name, keys)`
 
 Set many items in a filter at once
-* IN: the `keys` is a table contains some keys.
-* OUT: the `status` is a table contains each key's set status('Yes' or 'No').
+* IN: the `keys` is a table that contains some keys.
+* OUT: the `status` is a table that contains each key's set status('Yes' or 'No').
 
 info
 ---
 `syntax: ok, info = filter_obj:info(filter_name)`
 
-Gets info about a filter
+Get info about a filter
 * OUT: the `info` is a table like `{in_memory:1,set_misses:3,checks:8,capacity:100001, probability:0.001,page_outs:1,size:5,check_hits:5,
 storage:240141,page_ins:1,set_hits:5,check_misses:3,sets:8}`.
 
