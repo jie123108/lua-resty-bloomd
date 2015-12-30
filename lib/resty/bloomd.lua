@@ -34,7 +34,6 @@ function _M:new(host, port, timeout)
 end
 
 function _M:_connect()
-    assert(self.sock == nil, "self.sock is not nil")
     local sock = ngx.socket.tcp()
     if self.timeout then
         sock:settimeout(self.timeout)
@@ -44,31 +43,31 @@ function _M:_connect()
         sock:close()
         return nil, err
     end
-    self.sock = sock 
-    return ok, err
+    
+    return sock
 end
 
-function _M:_setkeepalive()
-    if self.sock then
-        self.sock:setkeepalive()
-        self.sock = nil
+function _M:_setkeepalive(sock)
+    if sock then
+        sock:setkeepalive()
+        sock = nil
     end
 end
 
-function _M:_request(command, endval)
-    assert(self.sock ~= nil, "socket not inited")
+function _M:_request(sock, command, endval)
+    assert(sock ~= nil, "socket not inited")
     assert(command ~= nil, "cmd is nil")
-    local n, err = self.sock:send(command .. "\n")
+    local n, err = sock:send(command .. "\n")
     if err then
         return nil, err
     end
     if endval == nil then
-        local line, err, partial = self.sock:receive('*l')
+        local line, err, partial = sock:receive('*l')
         return line, err, partial
     else
         local lines = {}
         for i=1, 10240 do 
-            local line, err, partial = self.sock:receive('*l')            
+            local line, err, partial = sock:receive('*l')            
             if err then
                 table.insert(lines, partial)
                 return nil, err, table.concat(lines, '\n') 
@@ -83,12 +82,12 @@ function _M:_request(command, endval)
 end
 
 function _M:_request_once(cmd, endval)
-    local ok, err = self:_connect()
-    if not ok then
-        return ok, err
+    local sock, err = self:_connect()
+    if not sock then
+        return nil, err
     end 
-    local line, err, partial = self:_request(cmd, endval)
-    self:_setkeepalive()
+    local line, err, partial = self:_request(sock, cmd, endval)
+    self:_setkeepalive(sock)
     return line, err
 end
 
@@ -121,7 +120,7 @@ function _M:create(filter_name, capacity, prob, in_memory)
     if line == "Done" or line == "Exists" then
         return true, line
     else
-        return false, line 
+        return false, line
     end
 end
 
@@ -134,7 +133,7 @@ function _M:_do_command1(cmd)
     if line == "Done" then
         return true, line
     else
-        return false, line 
+        return false, line
     end
 end
 
